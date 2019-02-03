@@ -45,7 +45,7 @@ Note with `random` you might need more iterations. Default is `content`.
 1) Use all default values:  
 `python main.py -content_image_path focus_left.jpg -style_image_path = hokusai-a_colored_version_of_the_big_wave.jpg`
 2) Use different content layer and different style layers with increasing style weights on 10 iterations with VGG19:  
-`python main.py -content_image_path focus_left.jpg -style_image_path hokusai-a_colored_version_of_the_big_wave.jpg -num_iter 10 -model VGG19 -content_layer block4_conv2 -content_weight -style_layers block1_conv1 block2_conv1 block3_conv1 -style_weights 4.0 8.0 100.0`
+`python main.py -content_image_path focus_left.jpg -style_image_path hokusai-a_colored_version_of_the_big_wave.jpg -num_iter 10 -model VGG19 -content_layer block4_conv2 -content_weight 1.5 -style_layers block1_conv1 block2_conv1 block3_conv1 -style_weights 4.0 8.0 100.0`
   
 **Layers**  
 In order to have a look at the model summary for `VGG16` and `VGG19` have a look at this [Notebook](https://github.com/ptl93/neural-style-transfer/blob/master/model_summaries.ipynb).
