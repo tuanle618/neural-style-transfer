@@ -23,7 +23,7 @@ Following style image (Hokusai's "Colored Big Wave") was selected for the algori
 ## Result:
 This image was generated after 60 iterations. Note 10 iterations would have been sufficient.
 ![Generated Image](https://github.com/ptl93/neural-style-transfer/blob/master/output/focus_left/generated_image_at_iteration_60.png)
-### How the algorithms adjusts the image:
+### How the algorithm adjusts the image:
 ![Animation of algorithm](https://github.com/ptl93/neural-style-transfer/blob/master/output/focus_left/generated_wave_gif.gif)
 
 ## Loss Curve:
