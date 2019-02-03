@@ -5,6 +5,7 @@ Repository to apply neural style transfer on content and style image to create n
 ```
 tensorflow==1.9.0
 keras==2.2.4
+numpy==1.15.4
 PIL==4.2.1
 scipy==1.1.0
 matplotlib==2.2.2
