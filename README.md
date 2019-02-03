@@ -18,7 +18,8 @@ root:
 |-- content: containing all content images  
 |-- style: containing all style images  
 |-- output: containing all subdirectories for generated images  
-|`main.py`  
+|`main.py`: python main programm to generate articifial images with style transfer  
+|`model_summaries.ipynb`: ipython notebook to check out `VGG16` and `VGG19` model summaries.
 
 The python main programm `main.py` has following input arguments:  
 **Required input arguments**
@@ -47,7 +48,7 @@ Note with `random` you might need more iterations. Default is `content`.
 `python main.py -content_image_path focus_left.jpg -style_image_path hokusai-a_colored_version_of_the_big_wave.jpg -num_iter 10 -model VGG19 -content_layer block4_conv2 -content_weight -style_layers block1_conv1 block2_conv1 block3_conv1 -style_weights 4.0 8.0 100.0`
   
 **Layers**  
-In order to have a look at the model summary for `VGG16` and `VGG19` have a look at this [Notebook](https://github.com/ptl93/conv-net-feature-extraction/blob/master/feature-extraction.ipynb)
+In order to have a look at the model summary for `VGG16` and `VGG19` have a look at this [Notebook](https://github.com/ptl93/neural-style-transfer/blob/master/model_summaries.ipynb).
 
 # Result:
 ## Content Image:
