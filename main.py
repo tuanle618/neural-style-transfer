@@ -39,7 +39,14 @@ def args_parser():
     
     parser.add_argument("-image_height", default=600, metavar="", type=int,
                         help="Height of generated image. Default is 600")
-        
+    
+    parser.add_argument("-content_layer", metavar="", default="block5_conv2", type=str,
+                        help="Content layer used for content loss. Default is 'block5_conv2'")
+    
+    parser.add_argument("-style_layers", metavar="", nargs="+", type=str, default=None,
+                        help="""Content layer used for content loss.
+                        Default is ['block1_conv1', 'block2_conv1', 'block3_conv1', 'block4_conv1', 'block5_conv1']""")
+    
     parser.add_argument("-content_weight", metavar="", default=0.025, type=float,
                         help="Weight of content. Default is 0.025")
     
@@ -49,8 +56,8 @@ def args_parser():
     parser.add_argument("-total_variation_weight", metavar="", default=8.5e-5, type=float,
                         help="Total Variation weight. Default is 8.5e-5")
 
-    parser.add_argument("-num_iter", default=50, metavar="", type=int,
-                        help="Number of iterations. Default is 50")
+    parser.add_argument("-num_iter", default=20, metavar="", type=int,
+                        help="Number of iterations. Default is 20")
     
     parser.add_argument("-model", default="vgg16", metavar="", type=str,
                         help="Choices are 'vgg16' and 'vgg19'. Default is 'vgg16'")
@@ -58,12 +65,7 @@ def args_parser():
     parser.add_argument("-rescale_image", metavar="", default="False", type=str,
                         help="Rescale generated image to original image dimensions. Default is False")
     
-    parser.add_argument("-content_layer", metavar="", default="block5_conv2", type=str,
-                        help="Content layer used for content loss. Default is 'block5_conv2'")
     
-    parser.add_argument("-style_layers", metavar="", nargs="+", type=str, default=None,
-                        help="""Content layer used for content loss.
-                        Default is ['block1_conv1', 'block2_conv1', 'block3_conv1', 'block4_conv1', 'block5_conv1']""")
         
     
    
