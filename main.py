@@ -398,7 +398,7 @@ def main():
     # summarize history for loss
     plt.figure(3,figsize=(7,5))
     plt.plot(loss_history)
-    plt.title("loss process during NTS")
+    plt.title("loss process during neural style transfer")
     plt.ylabel("loss")
     plt.xlabel("epoch")
     plt.savefig(output_subdir + "/loss_history.jpg")
