@@ -1,6 +1,6 @@
 # neural-style-transfer
-Repository to apply neural style transfer on content and style image to create new artistic images.
-
+Repository to apply neural style transfer on content and style image to create new artistic images.  
+Paper: [A Neural Algorithm of Artistic Style](https://arxiv.org/pdf/1508.06576.pdf)
 # Dependencies: Python3
 ```
 tensorflow==1.9.0
