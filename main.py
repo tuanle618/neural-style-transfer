@@ -15,6 +15,7 @@ import time
 import argparse
 import os
 from keras import backend as K
+import sys
 ###############################################################################
 
 
@@ -65,21 +66,36 @@ def args_parser():
     parser.add_argument("-rescale_image", metavar="", default="False", type=str,
                         help="Rescale generated image to original image dimensions. Default is False")
     
-    
-        
-    
-   
     args = parser.parse_args()
     
     return args
 
-def str_to_bool(v):
-    if v.lower() in ["true", "yes", "y", "t", "1"]:
-        return True
-    elif v.lower() in ["false", "no", "f", "n", "0"]:
-        return False
+def str_to_bool(s):
+    """
+    This function converts a string into a boolean value
+    Args:
+        s [str]: string representing tre value
+    Returns:
+        b [bool]: boolean value of string representation
+        
+    """
+    if s.lower() in ["true", "yes", "y", "t", "1"]:
+        b = True
+    elif s.lower() in ["false", "no", "f", "n", "0"]:
+        b = False
+    else:
+        print("boolean string not correctly specified")
+        sys.exit(1)
+    return b
 
 def info_print(args):
+    """
+    This function prints the input arguments from argparse when calling this script via python shell.
+    Args:
+        args [argparse.Namespace]: argument namespace from main.py
+    Returns:
+        None
+    """
     print(52*"-")
     print("Neural Style Transfer with Keras:")
     print(52*"-")
@@ -96,7 +112,14 @@ def info_print(args):
 ########################## Image Processing Functions #########################
 def preprocess_image(image_path, img_shape, preprocess_input):
     """
-    
+    This function loads an image, preprocess that image and returns it as an numpy.ndarray
+    The preprocessing includes resizing the image, adding a batch dimension, and centering the image based on the applied imagenet dataset.
+    Args:
+        image_path [str]: relative path of image
+        img_shape [tuple]: tuple of desired image shape to resize 
+        preprocess_input [keras.applications. ] model specific preprocess function from keras. Either VGG16 or VGG19 
+    Returns:
+        img [numpy.ndarray]: preprocessed image as numpy.ndarray
     """
     ## Create Image object
     img = load_img(image_path, target_size=img_shape)
@@ -112,7 +135,15 @@ def preprocess_image(image_path, img_shape, preprocess_input):
 
 def deprocess_image(x, img_shape):
     """
-    
+    This function returns the mean centering operation made with preprocess_image/input when 0 centering
+    the input image with the imagenet dataset mean. Hence for each channel the mean will be added again (line)
+    Note this function works with both: tensorflow and theano backend.
+    The image numpy array will be integer clipped onto the range 0-255.
+    Args:
+        x [numpy.ndarray] image to be deprocessed, dtype is float
+        img_shape [tuple] shape which the image has
+    Returns:
+        x [numpy.ndarray] deprocessed image, dtype is integer
     """
     ## Theano
     if K.image_data_format() == "channels_first":
@@ -131,15 +162,21 @@ def deprocess_image(x, img_shape):
     x = np.clip(x, 0, 255).astype("uint8")
     return x
 
-def save_original_size(x, target_size):
-    pass
-
 ###############################################################################
     
 ################ Feature representations and loss calculations ################
 
 def gram_matrix(x):
     """
+    This function computes the gram matrix for a feature representation layer l as innerproduct.
+    Args:
+        x [numpy.ndarray]: Note this array is the feature map for one layer. The indexing is as follow: x.shape = (filters_l, height, width) where filters_l
+                           is the number of filters in layer l. Hence each filter representation (containing filter_s matrices) are 2.dimensional arrays.
+                           To compute the gram matrix the imput 3D tensor with filters_l filters
+                           along the first dimension will be flattened into a 2D tensor using K.batch_flatten() and the gram matrix will be
+                           computed using the gram formula: http://mathworld.wolfram.com/GramMatrix.html
+    Returns:
+        gram [numpy.ndarray]: Computed gram matrix where gram.shape[0] = filters_l, and gram.shape[1] = height*width at layer l.
     """
     assert K.ndim(x) == 3
     if K.image_data_format() == "channels_first":
@@ -149,23 +186,72 @@ def gram_matrix(x):
     gram = K.dot(features, K.transpose(features))
     return gram
 
-def style_loss(style, generated, img_size):
+def content_loss(content, generated):
     """
-    Input are slices
+    This function computes the content loss as defined in the paper "A Neural Algorithm of Artistic Style".
+    Note the arithmetic operation "-" will be done on scalar level (elementwise on 3D tensor) In the paper the filter layers of one feature map l will
+    be column concatenaded such that <content> and <generated> are 2D tensors (matrices).
+    Args: 
+        content [numpy.ndarray]:(3D tensor) Feature representation for content image on a specific (content) layer.
+                                Shape tensorflow backend: (filters_l, height_l, width_l) at this layer.
+        generated [numpy.ndarray]:(3D tensor) Feature representation for generated image on a specific (content) layer.
+                                Shape tensorflow backend: (filters_l, height_l, width_l) at this layer.
+    Returns:
+        content_loss [float]: scalar value for content loss
+    """
+    assert K.ndim(content) == 3
+    assert K.ndim(generated) == 3
+    
+    content_loss = 0.5*K.sum(K.square(generated - content))
+    return content_loss
+
+def style_loss(style, generated, img_size, session):
+    """
+    This function computes the style loss as defined in the paper "A Neural Algorithm of Artistic Style".
+    Calls defined python function gram_matrix.
+    Args:
+        style [numpy.ndarray]:(3D tensor) Feature representation of style image on a specific (style) layer
+        generated [numpy.ndarray]:(3D tensor) Feature representation of generated image on a specific (style) layer
+        img_size [tuple] size of the generated image. Used for keras implementation of style loss factor
+        session [backend.python.client.session.Session] either tensorflow or theano backend session to compute tensor shape. Used for paper implementation of style loss factor
+    Returns:
+        style_loss [float]: scalar value for style loss
     """
     assert K.ndim(style) == 3
     assert K.ndim(generated) == 3
+    
+    ## Get tensor shapes of generated feature map
+    g_shape = K.shape(generated).eval(session=session)
+    if K.image_data_format() == "channels_first":
+        ## permute axis to get tensorflow shape representation with channel_last
+        g_shape = (g_shape[1], g_shape[2], g_shape[0])
+            
     S = gram_matrix(style)
-    C = gram_matrix(generated)
-    channels = 3
-    size = img_size[0] * img_size[1]
-    return K.sum(K.square(S - C)) / (4.0 * (channels ** 2) * (size ** 2))
+    G = gram_matrix(generated)
 
-def content_loss(content, generated):
-    return 0.5*K.sum(K.square(generated - content))
+    ## Number of filters, last channel if tensorflow. if theano, the shape was permuted such that g_shape has last channel tensorflow property
+    N_l = g_shape[2]
+    M_l = g_shape[0] * g_shape[1]
+    
+    ## keras implementation
+    if True:
+        channels = 3
+        size = img_size[0] * img_size[1]
+    else:
+        ## paper implementation
+        channels = N_l
+        size = M_l
+    
+    style_loss = K.sum(K.square(S - G)) / (4.0 * (channels ** 2) * (size ** 2))
+    return style_loss
 
 def total_variation_loss(x, img_size):
     """
+    This function computes the total variation loss as an additional loss to the content and style loss from the paper "A Neural Algorithm of Artistic Style".
+    Args:
+        x [numpy.ndarray] generated image with index axis as first dimension. 
+    Returns:
+        total_variation_loss [float]
     """
     assert K.ndim(x) == 4
     if K.image_data_format() == "channels_first":
@@ -178,10 +264,22 @@ def total_variation_loss(x, img_size):
             x[:, :img_size[0] - 1, :img_size[1] - 1, :] - x[:, 1:, :img_size[1] - 1, :])
         b = K.square(
             x[:, :img_size[0] - 1, :img_size[1] - 1, :] - x[:, :img_size[0] - 1, 1:, :])
-    return K.sum(K.pow(a + b, 1.25))
+        
+    total_variation_loss =  K.sum(K.pow(a + b, 1.25))
+    return total_variation_loss
 
 
 def eval_loss_and_grads(x, img_size, f_outputs):
+    """
+    This function computes the loss value of a function and extract the gradients.
+    Args:
+        x [numpy.ndarray]: 3D tensor (generated) image
+        img_size [tuple]: generated image size
+        f_outputs [function] : function to output loss and gradients as list
+    Returns:
+        loss_value [float]: scalar loss value for (a certain generated image) x
+        grad_values [numpy.ndarray] 1D array of gradient values
+    """
     if K.image_data_format() == "channels_first":
         x = x.reshape((1, 3, img_size[0], img_size[1]))
     else:
@@ -238,11 +336,10 @@ def main():
     else:
         style_image_path = args.style_image_path
     
-
     init_image = args.init_image
     image_width = args.image_width
     image_height = args.image_height
-    img_size = (image_width, image_height)
+    img_size = (image_height, image_width)
     content_weight = args.content_weight
     style_weights = args.style_weights
     total_variation_weight = args.total_variation_weight
@@ -290,22 +387,23 @@ def main():
     ## Define generate image variable placeholder for later optimization
     # Theano
     if K.image_data_format() == "channels_first":
-        generated_image_placeholder = K.placeholder(shape=(1, 3, image_width, image_height))
+        generated_image_placeholder = K.placeholder(shape=(1, 3, image_height, image_width))
     # Tensorflow
     else:
-        generated_image_placeholder = K.placeholder(shape=(1, image_width, image_height, 3))
+        generated_image_placeholder = K.placeholder(shape=(1, image_height, image_width, 3))
         
     
     ###### Initialize one keras models with one input tensors which is concatenated by 3 images ######
     input_tensor = K.concatenate([content_image,
                                   style_image,
                                   generated_image_placeholder], axis=0)
+    ## input_tensor is a 4D tensor, with shape (3, image_height, image_width, 3) where the first 3 is the concatenation of 3 images and last 3 the color channel (tf)
     
     # build the keras network with our 3 images as input
     model = keras_model(input_tensor=input_tensor, weights='imagenet', include_top=False)
 
 
-    # get the symbolic outputs of each layer (we gave them unique names).
+    # get the symbolic outputs of each layer (we gave them unique names). [Feature representations/maps in form of 4D tensors at each layer]
     outputs_dict = dict([(layer.name, layer.output) for layer in model.layers])
     
     # combine these loss functions into a single scalar
@@ -327,7 +425,8 @@ def main():
     else:
         assert len(style_weights) == len(style_layers)
         style_weights = [float(style_weight) for style_weight in style_weights]
-        
+    
+    session = K.get_session()    
     for style_weight, layer_name in zip(style_weights,style_layers):
         ## get feature activations from layers
         layer_features = outputs_dict[layer_name]
@@ -336,7 +435,8 @@ def main():
         ## retrieve generated_image output activations for a style_layer
         generated_image_features = layer_features[2, :, :, :]
         ## get loss containing content loss and style loss
-        loss = loss + (style_weight / len(style_layers)) * style_loss(style_image_features, generated_image_features, img_size)
+        loss = loss + (style_weight / len(style_layers)) * style_loss(style_image_features, generated_image_features,
+                      img_size, session)
         
     ## get loss containing content loss, style loss and total variation loss
     loss = loss + total_variation_weight * total_variation_loss(generated_image_placeholder, img_size)
@@ -344,13 +444,17 @@ def main():
     # get the gradients of the generated image wrt. the loss
     grads = K.gradients(loss, generated_image_placeholder)
     
+    # Define outputs list to have loss included
     outputs = [loss]
+    
+    # add the gradients to the outputs instance
     if isinstance(grads, (list, tuple)):
         outputs += grads
     else:
         outputs.append(grads)
-
-    f_outputs = K.function([generated_image_placeholder], outputs)
+        
+    ## Define keras function with input the placeholder of the generated image and output the {loss and gradients} for learning
+    f_outputs = K.function(inputs=[generated_image_placeholder], outputs=outputs)
     
     class Evaluator(object):
         def __init__(self):
@@ -370,6 +474,13 @@ def main():
             self.loss_value = None
             self.grad_values = None
             return grad_values
+    
+    # this Evaluator class makes it possible
+    # to compute loss and gradients in one pass
+    # while retrieving them via two separate functions,
+    # "loss" and "grads". This is done because scipy.optimize
+    # requires separate functions for loss and gradients,
+    # but computing them separately would be inefficient.
     
     evaluator = Evaluator()
     
@@ -400,7 +511,7 @@ def main():
     plt.plot(loss_history)
     plt.title("loss process during neural style transfer")
     plt.ylabel("loss")
-    plt.xlabel("epoch")
+    plt.xlabel("iteration")
     plt.savefig(output_subdir + "/loss_history.jpg")
     plt.close()
     
