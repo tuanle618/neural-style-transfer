@@ -1,7 +1,14 @@
 # neural-style-transfer
 Repository to apply neural style transfer on content and style image to create new artistic images.  
-Paper: [A Neural Algorithm of Artistic Style](https://arxiv.org/pdf/1508.06576.pdf)
-# Dependencies: Python3
+Paper: [A Neural Algorithm of Artistic Style](https://arxiv.org/pdf/1508.06576.pdf)  
+  
+Neural style transfer is an optimization technique used to take three images, a content image, a style reference image (such as an artwork by a famous painter), and the input image you want to style — and blend them together such that the input image is transformed to look like the content image, but "painted" in the style of the style image.
+This method does not use a (convolutional) neural network in a true sense as classifier but rather using pre-trained weights from large CNNs, such as [VGG16 or VGG19](https://arxiv.org/pdf/1409.1556.pdf) trained on a large dataset corpus ([imagenet](http://www.image-net.org/)), to compute the feature maps (to understand the feature map have a look at following [blogpost](https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/)) of a given style/content/generated image.  
+
+For applying neural style transfer `keras` library will be used with **either** `tensorflow` or `theano` backend (both possible).  
+It is highly recommandable to run the script with gpu, hence for tensorflow installation: `tensorflow-gpu`.
+
+# Dependencies: Python 3
 ```
 tensorflow==1.9.0
 keras==2.2.4
@@ -11,7 +18,7 @@ scipy==1.1.0
 matplotlib==2.2.2
 ```
 
-# Execution: tbd
+# Execution:
 The project has following directory structure:
 root:
 |  
